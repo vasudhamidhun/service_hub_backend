@@ -61,3 +61,12 @@ jobs:
 
       - name: Run tests
         run: python manage.py test
+
+
+        
+      - name: Deploy to Render
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          deploy_url: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: curl --fail --silent --show-error "$deploy_url"
+
