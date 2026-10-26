@@ -6,8 +6,6 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
 
-
-
 from .services import otp_service
 
 from .serializers import (
@@ -23,8 +21,6 @@ from .serializers import (
 )
 
 from .models import ProviderProfile
-
-
 
 class CustomerRegisterView(generics.CreateAPIView):
     serializer_class = CustomerRegisterSerializer
@@ -44,6 +40,12 @@ class CustomerLoginView(TokenObtainPairView):
 class ProviderLoginView(TokenObtainPairView):
     serializer_class = ProviderLoginSerializer
     permission_classes = [permissions.AllowAny]
+
+    def get_serializer(self, *args, **kwargs):
+        serializer = super().get_serializer(*args, **kwargs)
+        print("ACTIVE SERIALIZER:", serializer.__class__)
+        print("SERIALIZER FIELDS:", list(serializer.fields.keys()))
+        return serializer
 
 class AdminLoginView(TokenObtainPairView):
     serializer_class = AdminLoginSerializer
@@ -81,7 +83,6 @@ class ProviderCreation_SendOTPView(generics.GenericAPIView):
             phone=phone,
             profile_data=profile_data,
         )
-
         otp_service.send_otp_email(user.email, otp)
 
         return Response(
@@ -147,7 +148,7 @@ class ProviderVerifyOTPView(generics.GenericAPIView):
 
         return Response(
             {
-                "detail": "Phone verified and provider profile created successfully.",
+                "detail": "Email verified and  profile created successfully.",
                 "profile": ProviderProfileSerializer(profile).data,
             },
             status=status.HTTP_201_CREATED,
@@ -222,4 +223,21 @@ class ProviderVerificationView(generics.UpdateAPIView):
     http_method_names = ["patch", "options", "head"]
 
 
+
+class MyProviderProfileView(generics.RetrieveUpdateAPIView):
+    serializer_class = ProviderProfileSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        user = self.request.user
+
+        if user.role != "provider":
+            raise permissions.PermissionDenied(
+                "Only providers can access this profile."
+            )
+
+        try:
+            return ProviderProfile.objects.get(user=user)
+        except ProviderProfile.DoesNotExist:
+            raise NotFound("Provider profile not found.")
 

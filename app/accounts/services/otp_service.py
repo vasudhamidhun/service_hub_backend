@@ -34,7 +34,6 @@ def verify_otp(user_id, submitted_otp):
 
     if not secrets.compare_digest(stored["otp"], submitted_otp):
         return False
-
     return True
 
 

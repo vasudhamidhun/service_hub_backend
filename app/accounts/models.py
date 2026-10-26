@@ -8,6 +8,7 @@ class User(AbstractUser):
     class Role(models.TextChoices):
         CUSTOMER = "customer", "Customer"
         PROVIDER = "provider", "Service Provider"
+        ADMIN = "admin", "Admin"
 
     full_name = models.CharField(max_length=150)
 
@@ -19,9 +20,14 @@ class User(AbstractUser):
 
     email = models.EmailField(unique=True)
 
+    def save(self, *args, **kwargs):
+        if self.is_superuser:
+            self.role = self.Role.ADMIN
+
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.full_name or self.username
-
 
 class ProviderProfile(models.Model):
     user = models.OneToOneField(

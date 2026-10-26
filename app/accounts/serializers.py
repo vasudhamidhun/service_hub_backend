@@ -4,6 +4,8 @@ from django.utils.text import slugify
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
 from django.contrib.auth import authenticate
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
 from .models import ProviderProfile
 
         
@@ -61,6 +63,15 @@ class ProviderRegisterSerializer(BaseRegisterSerializer):
 
 
 
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        token["role"] = user.role
+        return token
+
+
+
 class BaseRoleLoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(
@@ -78,6 +89,9 @@ class BaseRoleLoginSerializer(serializers.Serializer):
             email__iexact=email
         ).first()
 
+        print("EMAIL RECEIVED:", email)
+        print("USER FOUND:", user_record is not None)
+
         if not user_record:
             raise serializers.ValidationError(
                 "Invalid email or password."
@@ -88,6 +102,9 @@ class BaseRoleLoginSerializer(serializers.Serializer):
             username=user_record.username,
             password=password,
         )
+
+        print("USERNAME USED:", user_record.username)
+        print("AUTHENTICATION SUCCESS:", user is not None)
 
         if user is None:
             raise serializers.ValidationError(
@@ -104,13 +121,12 @@ class BaseRoleLoginSerializer(serializers.Serializer):
                 "This account cannot use this login page."
             )
 
-        refresh = TokenObtainPairSerializer.get_token(user)
+        refresh = CustomTokenObtainPairSerializer.get_token(user)
 
         return {
             "refresh": str(refresh),
             "access": str(refresh.access_token),
         }
-
 
 class CustomerLoginSerializer(BaseRoleLoginSerializer):
     expected_role = User.Role.CUSTOMER
@@ -120,8 +136,7 @@ class ProviderLoginSerializer(BaseRoleLoginSerializer):
     expected_role = User.Role.PROVIDER
 
 
-
-class AdminLoginSerializer(TokenObtainPairSerializer):
+class AdminLoginSerializer(CustomTokenObtainPairSerializer):
     username_field = "email"
 
     def validate(self, attrs):
@@ -134,7 +149,7 @@ class AdminLoginSerializer(TokenObtainPairSerializer):
 
         if not user_record:
             raise serializers.ValidationError(
-                "Invalid email or password."
+                "Invalid admin credentials."
             )
 
         user = authenticate(
@@ -148,6 +163,7 @@ class AdminLoginSerializer(TokenObtainPairSerializer):
             or not user.is_active
             or not user.is_staff
             or not user.is_superuser
+            or user.role != User.Role.ADMIN
         ):
             raise serializers.ValidationError(
                 "Invalid admin credentials."
@@ -167,12 +183,17 @@ class ProviderProfileSerializer(serializers.ModelSerializer):
         source="user.full_name",
         read_only=True,
     )
+    email = serializers.EmailField(
+        source="user.email",
+        read_only=True,
+    )
 
     class Meta:
         model = ProviderProfile
         fields = [
             "id",
             "full_name",
+            "email",
             "phone",
             "bio",
             "experience_years",
@@ -183,6 +204,7 @@ class ProviderProfileSerializer(serializers.ModelSerializer):
         read_only_fields = [
             "id",
             "full_name",
+            "email",
             "verification_status",
         ]
 
@@ -220,6 +242,8 @@ class ProviderVerifyOTPSerializer(serializers.Serializer):
             )
 
         return value
+
+
 
 class ProviderVerificationSerializer(serializers.ModelSerializer):
     class Meta:

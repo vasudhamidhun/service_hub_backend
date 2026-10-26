@@ -13,7 +13,7 @@ from .views import (
     AdminLoginView,
     ProviderVerificationView,
     ProviderCreation_SendOTPView,
-    ProviderVerifyOTPView,
+    ProviderVerifyOTPView,MyProviderProfileView
 )
 
 urlpatterns = [
@@ -62,6 +62,12 @@ urlpatterns = [
         ProviderProfileView.as_view(),
         name="provider-profile",
     ),
+
+    path(
+    "api/providers/me/profile/",
+    MyProviderProfileView.as_view(),
+    name="my-provider-profile",
+),
     path(
         "api/providers/",
         GetAllProvidersView.as_view(),
