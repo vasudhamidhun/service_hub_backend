@@ -81,6 +81,7 @@ class BaseRoleLoginSerializer(serializers.Serializer):
 
     expected_role = None
 
+    
     def validate(self, attrs):
         email = attrs["email"].strip().lower()
         password = attrs["password"]
@@ -88,9 +89,6 @@ class BaseRoleLoginSerializer(serializers.Serializer):
         user_record = User.objects.filter(
             email__iexact=email
         ).first()
-
-        print("EMAIL RECEIVED:", email)
-        print("USER FOUND:", user_record is not None)
 
         if not user_record:
             raise serializers.ValidationError(
@@ -102,9 +100,6 @@ class BaseRoleLoginSerializer(serializers.Serializer):
             username=user_record.username,
             password=password,
         )
-
-        print("USERNAME USED:", user_record.username)
-        print("AUTHENTICATION SUCCESS:", user is not None)
 
         if user is None:
             raise serializers.ValidationError(
@@ -126,6 +121,13 @@ class BaseRoleLoginSerializer(serializers.Serializer):
         return {
             "refresh": str(refresh),
             "access": str(refresh.access_token),
+            "user": {
+                "id": user.id,
+                "full_name": user.full_name,
+                "email": user.email,
+                "username": user.username,
+                "role": user.role,
+            },
         }
 
 class CustomerLoginSerializer(BaseRoleLoginSerializer):
@@ -198,6 +200,7 @@ class ProviderProfileSerializer(serializers.ModelSerializer):
             "bio",
             "experience_years",
             "service_location",
+            "service_category",
             "profile_photo",
             "verification_status",
         ]
@@ -208,15 +211,16 @@ class ProviderProfileSerializer(serializers.ModelSerializer):
             "verification_status",
         ]
 
+
 class ProviderSendOTPSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProviderProfile
         fields = [
             "phone",
             "bio",
+            "service_category",
             "experience_years",
             "service_location",
-            
         ]
 
     def validate_phone(self, value):
@@ -228,7 +232,17 @@ class ProviderSendOTPSerializer(serializers.ModelSerializer):
             )
 
         return phone
-    
+
+    def validate_service_category(self, value):
+        category = value.strip()
+
+        if not category:
+            raise serializers.ValidationError(
+                "Please select a service category."
+            )
+
+        return category
+ 
 class ProviderVerifyOTPSerializer(serializers.Serializer):
    
     otp = serializers.CharField(min_length=6, max_length=6)
@@ -259,5 +273,26 @@ class ProviderVerificationSerializer(serializers.ModelSerializer):
         return value
 
 
+
+class ProviderProfileUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProviderProfile
+        fields = [
+            "phone",
+            "bio",
+            "service_category",
+            "experience_years",
+            "service_location",
+            "profile_photo",
+        ]
+
+    def update(self, instance, validated_data):
+        # If the phone number changes, it must be verified again.
+        new_phone = validated_data.get("phone", instance.phone)
+
+        if new_phone != instance.phone:
+            instance.phone_verified = False
+
+        return super().update(instance, validated_data)
 
 

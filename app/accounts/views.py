@@ -17,8 +17,10 @@ from .serializers import (
     ProviderProfileSerializer,
     ProviderVerificationSerializer,
     ProviderSendOTPSerializer,
-    ProviderVerifyOTPSerializer
+    ProviderVerifyOTPSerializer,
+    ProviderProfileUpdateSerializer
 )
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 from .models import ProviderProfile
 
@@ -77,11 +79,12 @@ class ProviderCreation_SendOTPView(generics.GenericAPIView):
 
         profile_data = serializer.validated_data
         phone = profile_data["phone"]
-
+        
         otp = otp_service.generate_otp(
             user_id=user.id,
             phone=phone,
             profile_data=profile_data,
+           
         )
         otp_service.send_otp_email(user.email, otp)
 
@@ -141,6 +144,7 @@ class ProviderVerifyOTPView(generics.GenericAPIView):
     bio=profile_data.get("bio", ""),
     experience_years=profile_data.get("experience_years", 0),
     service_location=profile_data.get("service_location", ""),
+    service_category=profile_data.get("service_category"),
     phone_verified=False,
 )
 
@@ -195,9 +199,7 @@ class GetAllProvidersView(generics.ListAPIView):
     permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
-        return ProviderProfile.objects.filter(
-            verification_status="approved"
-        ).select_related("user")
+        return ProviderProfile.objects.select_related("user")
 
 class PendingProvidersView(generics.ListAPIView):
     serializer_class = ProviderProfileSerializer
@@ -241,3 +243,48 @@ class MyProviderProfileView(generics.RetrieveUpdateAPIView):
         except ProviderProfile.DoesNotExist:
             raise NotFound("Provider profile not found.")
 
+
+
+
+class ProviderProfileUpdateView(generics.RetrieveUpdateAPIView):
+    serializer_class = ProviderProfileUpdateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
+    http_method_names = ["get", "put", "patch", "head", "options"]
+
+    def get_object(self):
+        user = self.request.user
+
+        if user.role != "provider":
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied(
+                "Only service providers can update provider profiles."
+            )
+
+        try:
+            return ProviderProfile.objects.get(user=user)
+        except ProviderProfile.DoesNotExist:
+            from rest_framework.exceptions import NotFound
+            raise NotFound(
+                "Provider profile not found. Please create your profile first."
+            )
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+
+        serializer = self.get_serializer(
+            instance,
+            data=request.data,
+            partial=partial,
+        )
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        return Response(
+            {
+                "detail": "Provider profile updated successfully.",
+                "profile": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )

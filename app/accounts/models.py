@@ -37,6 +37,7 @@ class ProviderProfile(models.Model):
     )
     phone = models.CharField(max_length=15, blank=True)
     bio = models.TextField(blank=True)
+    service_category=models.CharField(max_length=255)
     experience_years = models.PositiveIntegerField(default=0)
     service_location = models.CharField(max_length=255, blank=True)
     profile_photo = models.ImageField(

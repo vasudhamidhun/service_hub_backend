@@ -61,7 +61,8 @@ INSTALLED_APPS = [
      "corsheaders",
     'rest_framework',
     # created apps
-    'app.accounts'
+    'app.accounts',
+    'app.services'
 ]
 
 MIDDLEWARE = [

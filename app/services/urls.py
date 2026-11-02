@@ -1,0 +1,68 @@
+from django.urls import path
+from .views import (ServiceSearchView,
+                    get_unique_service_categories,
+                    SendServiceRequestView,
+                    ServiceRequestView,
+                    CustomerServiceRequestListView,
+                    CustomerServiceRequestDetailView,
+                    CustomerCancelServiceRequestView,
+                    ProviderServiceRequestListView,
+                    ProviderDashboardStatsView,
+                    ProviderServiceRequestStatusUpdateView
+                    )
+
+urlpatterns=[
+ path(
+        "search/",
+        ServiceSearchView.as_view(),
+        name="service-search",
+    ),
+
+    path(
+    "service-categories/",
+    get_unique_service_categories,
+    name="unique-service-categories",
+),
+path(
+    "providers/<int:provider_id>/send-request/",
+    SendServiceRequestView.as_view(),
+    name="send-service-request",
+),
+path(
+    "providers/<int:provider_id>/service-request/",
+    ServiceRequestView.as_view(),
+    name="service-request",
+),
+path(
+    "customers/service-requests/",
+    CustomerServiceRequestListView.as_view(),
+    name="customer-service-requests",
+),
+
+path(
+    "customers/service-requests/<int:pk>/",
+    CustomerServiceRequestDetailView.as_view(),
+    name="customer-service-request-detail",
+),
+path(
+    "customer/service-requests/<int:pk>/cancel/",
+    CustomerCancelServiceRequestView.as_view(),
+    name="customer-cancel-service-request"
+),
+path(
+    "providers/my-requests/",
+    ProviderServiceRequestListView.as_view(),
+    name="provider-service-requests"
+),
+
+path(
+    "providers/dashboard/stats/",
+    ProviderDashboardStatsView.as_view(),
+    name="provider-dashboard-stats"
+),
+path(
+    "providers/my-requests/<int:pk>/<str:action>/",
+    ProviderServiceRequestStatusUpdateView.as_view(),
+    name="provider-request-status-update"
+),
+]

@@ -13,7 +13,8 @@ from .views import (
     AdminLoginView,
     ProviderVerificationView,
     ProviderCreation_SendOTPView,
-    ProviderVerifyOTPView,MyProviderProfileView
+    ProviderVerifyOTPView,MyProviderProfileView,
+    ProviderProfileUpdateView
 )
 
 urlpatterns = [
@@ -84,6 +85,12 @@ urlpatterns = [
         "api/admin/providers/<int:pk>/verification/",
         ProviderVerificationView.as_view(),
         name="provider-verification",
+    ),
+
+       path(
+        "api/providers/me/profile/update/",
+        ProviderProfileUpdateView.as_view(),
+        name="provider-profile-update",
     ),
 
     # JWT refresh
