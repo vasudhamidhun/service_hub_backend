@@ -12,9 +12,15 @@ from app.accounts.models import ProviderProfile
 from .serializers import ProviderSearchSerializer,ServiceRequestSerializer,CustomerServiceRequestSerializer
 
 from .models import ProviderProfile, ServiceRequest
+from app.notifications.models import Notification
 from django.shortcuts import get_object_or_404
 
 from rest_framework.exceptions import PermissionDenied, ValidationError
+
+import logging
+
+logger = logging.getLogger(__name__)
+
 class ProviderServiceRequestListView(generics.ListAPIView):
 
     serializer_class = ServiceRequestSerializer
@@ -204,6 +210,14 @@ class SendServiceRequestView(generics.CreateAPIView):
             service_location=service_location,
             status="pending",
         )
+        Notification.objects.create(
+            recipient=provider.user,
+            title="New Service Request",
+            message=f"{request.user.full_name} has sent you a service request for {provider.service_category}.",
+            notification_type="new_request",
+            service_request=service_request,
+        )
+        print("Notification created:", Notification.id)
 
         return Response(
             {
@@ -310,6 +324,14 @@ class ServiceRequestView(generics.GenericAPIView):
             status="pending",
         )
 
+        Notification.objects.create(
+                    recipient=provider.user,
+                    title="New Service Request",
+                    message=f"{request.user.full_name} has sent you a service request for {provider.service_category}.",
+                    notification_type="new_request",
+                    service_request=service_request,
+                )
+
         return Response(
             {
                 "message": "Service request sent successfully.",
@@ -377,11 +399,11 @@ class CustomerCancelServiceRequestView(APIView):
         )
 
         # Allow cancellation only for pending requests
-        if service_request.status != "pending":
+        if service_request.status != "pending" and service_request.status != "accepted":
             return Response(
                 {
                     "message": (
-                        "Only pending requests can be cancelled."
+                        "Only pending and accepted requests can be cancelled."
                     )
                 },
                 status=status.HTTP_400_BAD_REQUEST
@@ -412,54 +434,54 @@ class ProviderServiceRequestListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-
         if self.request.user.role != "provider":
-            raise PermissionDenied(
-                "Only providers can view received requests."
-            )
+            raise PermissionDenied("Only providers can access requests.")
 
         try:
             provider = self.request.user.provider_profile
         except ProviderProfile.DoesNotExist:
-            raise PermissionDenied(
-                "Provider profile not found."
-            )
+            raise PermissionDenied("Provider profile not found.")
 
-        queryset = (
-            ServiceRequest.objects
-            .filter(provider=provider)
-            .select_related(
-                "customer",
-                "provider",
-                "provider__user"
-            )
-            .order_by("-created_at")
-        )
+        queryset = ServiceRequest.objects.filter(
+            provider=provider
+        ).select_related(
+            "customer",
+            "provider",
+            "provider__user"
+        ).order_by("-created_at")
 
-        request_status = self.request.query_params.get("status")
+        status_filter = self.request.query_params.get("status")
 
-        if request_status:
+        if status_filter:
             valid_statuses = [
-                choice[0]
-                for choice in ServiceRequest.STATUS_CHOICES
+                "pending", "accepted", "rejected",
+                "cancelled", "completed"
             ]
 
-            if request_status not in valid_statuses:
-                raise ValidationError({
-                    "status": "Invalid request status."
-                })
+            if status_filter not in valid_statuses:
+                raise ValidationError("Invalid status.")
 
-            queryset = queryset.filter(status=request_status)
+            queryset = queryset.filter(status=status_filter)
 
         return queryset
-
+    
 class ProviderDashboardStatsView(APIView):
 
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
 
+        # Log dashboard access
+        logger.info(
+            "Provider dashboard accessed by user ID: %s",
+            request.user.id
+        )
+
         if request.user.role != "provider":
+            logger.warning(
+                "Unauthorized dashboard access attempt by user ID: %s",
+                request.user.id
+            )
             return Response(
                 {"error": "Only providers can access this dashboard."},
                 status=status.HTTP_403_FORBIDDEN
@@ -468,6 +490,10 @@ class ProviderDashboardStatsView(APIView):
         try:
             provider = request.user.provider_profile
         except ProviderProfile.DoesNotExist:
+            logger.warning(
+                "Provider profile not found for user ID: %s",
+                request.user.id
+            )
             return Response(
                 {"error": "Provider profile not found."},
                 status=status.HTTP_404_NOT_FOUND
@@ -487,25 +513,44 @@ class ProviderDashboardStatsView(APIView):
             )
         )
 
+        logger.info(
+            "Provider dashboard stats retrieved successfully for user ID: %s",
+            request.user.id
+        )
+
         return Response(stats)
-
-
+    
 class ProviderServiceRequestStatusUpdateView(APIView):
 
     permission_classes = [permissions.IsAuthenticated]
 
     def patch(self, request, pk, action):
 
+        user = request.user
+
+        logger.info(
+            "Provider request status update attempted. User ID: %s, Request ID: %s, Action: %s",
+            user.id, pk, action
+        )
+
         # 1. Verify provider role
-        if request.user.role != "provider":
+        if user.role != "provider":
+            logger.warning(
+                "Non-provider attempted to update service request. User ID: %s",
+                user.id
+            )
             raise PermissionDenied(
                 "Only providers can update service requests."
             )
 
         # 2. Get logged-in provider profile
         try:
-            provider = request.user.provider_profile
+            provider = user.provider_profile
         except ProviderProfile.DoesNotExist:
+            logger.warning(
+                "Provider profile not found during status update. User ID: %s",
+                user.id
+            )
             raise PermissionDenied(
                 "Provider profile not found."
             )
@@ -527,6 +572,10 @@ class ProviderServiceRequestStatusUpdateView(APIView):
         }
 
         if action not in status_actions:
+            logger.warning(
+                "Invalid action '%s' for request ID: %s",
+                action, pk
+            )
             return Response(
                 {"error": "Invalid request action."},
                 status=status.HTTP_400_BAD_REQUEST
@@ -543,6 +592,10 @@ class ProviderServiceRequestStatusUpdateView(APIView):
 
         # 5. Validate current status
         if service_request.status != action_details["current"]:
+            logger.warning(
+                "Invalid status transition. Request ID: %s, Current status: %s, Action: %s",
+                pk, service_request.status, action
+            )
             return Response(
                 {
                     "error": (
@@ -555,10 +608,16 @@ class ProviderServiceRequestStatusUpdateView(APIView):
             )
 
         # 6. Update status
+        old_status = service_request.status
         service_request.status = action_details["new"]
 
         service_request.save(
             update_fields=["status", "updated_at"]
+        )
+
+        logger.info(
+            "Service request status updated successfully. Request ID: %s, User ID: %s, Old status: %s, New status: %s",
+            pk, user.id, old_status, service_request.status
         )
 
         # 7. Return updated request details
@@ -579,6 +638,7 @@ class ProviderServiceRequestStatusUpdateView(APIView):
 
 
 # view more
+
 class ProviderServiceRequestDetailView(generics.RetrieveAPIView):
 
     serializer_class = ServiceRequestSerializer
@@ -586,19 +646,34 @@ class ProviderServiceRequestDetailView(generics.RetrieveAPIView):
 
     def get_queryset(self):
 
-        if self.request.user.role != "provider":
+        user = self.request.user
+
+        logger.info(
+            "Provider request details accessed. User ID: %s",
+            user.id
+        )
+
+        if user.role != "provider":
+            logger.warning(
+                "Non-provider attempted to view request details. User ID: %s",
+                user.id
+            )
             raise PermissionDenied(
                 "Only providers can view request details."
             )
 
         try:
-            provider = self.request.user.provider_profile
+            provider = user.provider_profile
         except ProviderProfile.DoesNotExist:
+            logger.warning(
+                "Provider profile not found while viewing request details. User ID: %s",
+                user.id
+            )
             raise PermissionDenied(
                 "Provider profile not found."
             )
 
-        return (
+        queryset = (
             ServiceRequest.objects
             .filter(provider=provider)
             .select_related(
@@ -607,6 +682,13 @@ class ProviderServiceRequestDetailView(generics.RetrieveAPIView):
                 "provider__user"
             )
         )
+
+        logger.info(
+            "Provider request detail queryset prepared. User ID: %s, Request count: %s",
+            user.id, queryset.count()
+        )
+
+        return queryset
 
 
 

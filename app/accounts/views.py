@@ -23,6 +23,9 @@ from .serializers import (
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 from .models import ProviderProfile
+import logging
+
+logger = logging.getLogger(__name__)
 
 class CustomerRegisterView(generics.CreateAPIView):
     serializer_class = CustomerRegisterSerializer

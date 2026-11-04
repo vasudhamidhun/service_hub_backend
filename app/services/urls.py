@@ -8,7 +8,8 @@ from .views import (ServiceSearchView,
                     CustomerCancelServiceRequestView,
                     ProviderServiceRequestListView,
                     ProviderDashboardStatsView,
-                    ProviderServiceRequestStatusUpdateView
+                    ProviderServiceRequestStatusUpdateView,
+                    ProviderServiceRequestDetailView
                     )
 
 urlpatterns=[
@@ -64,5 +65,10 @@ path(
     "providers/my-requests/<int:pk>/<str:action>/",
     ProviderServiceRequestStatusUpdateView.as_view(),
     name="provider-request-status-update"
+),
+path(
+    "providers/my-requests/<int:pk>/",
+    ProviderServiceRequestDetailView.as_view(),
+    name="provider-service-request-detail"
 ),
 ]

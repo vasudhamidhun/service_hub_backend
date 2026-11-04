@@ -14,6 +14,7 @@ from pathlib import Path
 import os
 import dj_database_url
 from dotenv import load_dotenv
+import logging
 
 load_dotenv()
 
@@ -62,7 +63,9 @@ INSTALLED_APPS = [
     'rest_framework',
     # created apps
     'app.accounts',
-    'app.services'
+    'app.services',
+    'app.notifications',
+    'app.feedback'
 ]
 
 MIDDLEWARE = [
@@ -209,5 +212,57 @@ MAILERS = {
 }
 
 DEFAULT_FROM_EMAIL = os.getenv("EMAIL_HOST_USER")
+
+
+# ---------------------------------
+# LOGGING CONFIGURATION
+# ---------------------------------
+
+LOG_DIR = BASE_DIR / "logs"
+LOG_DIR.mkdir(exist_ok=True)
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+
+    "formatters": {
+        "verbose": {
+            "format": (
+                "{asctime} | {levelname} | "
+                "{name} | {message}"
+            ),
+            "style": "{",
+        },
+    },
+
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+            "level": "INFO",
+        },
+
+        "file": {
+            "class": "logging.FileHandler",
+            "filename": LOG_DIR / "service_hub.log",
+            "formatter": "verbose",
+            "level": "INFO",
+        },
+    },
+
+    "loggers": {
+        "django": {
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+
+        "app": {
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}
 
 
