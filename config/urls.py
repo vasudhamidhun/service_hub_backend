@@ -23,5 +23,5 @@ urlpatterns = [
     path('api/services/', include('app.services.urls')),
     path('api/notifications/', include('app.notifications.urls')),
     path('api/feedback/', include('app.feedback.urls')),
-
+    path('api/aifeatures/',include('app.AI_features.urls'))
 ] 

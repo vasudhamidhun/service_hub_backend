@@ -11,10 +11,12 @@ from rest_framework.views import APIView
 from app.accounts.models import ProviderProfile
 from .serializers import ProviderSearchSerializer,ServiceRequestSerializer,CustomerServiceRequestSerializer
 
+from rest_framework.permissions import IsAuthenticated
 from .models import ProviderProfile, ServiceRequest
 from app.notifications.models import Notification
 from django.shortcuts import get_object_or_404
-
+from django.core.mail import send_mail
+from django.conf import settings
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 import logging
@@ -217,7 +219,6 @@ class SendServiceRequestView(generics.CreateAPIView):
             notification_type="new_request",
             service_request=service_request,
         )
-        print("Notification created:", Notification.id)
 
         return Response(
             {
@@ -565,8 +566,12 @@ class ProviderServiceRequestStatusUpdateView(APIView):
                 "current": "pending",
                 "new": "rejected",
             },
-            "complete": {
+            "start": {
                 "current": "accepted",
+                "new": "in_progress",
+            },
+            "verify_complete": {
+                "current": "awaiting_completion",
                 "new": "completed",
             },
         }
@@ -690,6 +695,126 @@ class ProviderServiceRequestDetailView(generics.RetrieveAPIView):
 
         return queryset
 
+class CustomerRequestCompletionView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+
+        # 1. Only customers can request completion
+        if request.user.role != "customer":
+            raise PermissionDenied(
+                "Only customers can request service completion."
+            )
+
+        # 2. Get request belonging to this customer
+        service_request = get_object_or_404(
+            ServiceRequest.objects.select_related(
+                "provider__user",
+                "customer",
+            ),
+            pk=pk,
+            customer=request.user,
+        )
+
+        # 3. Validate current status
+        if service_request.status not in [
+            "accepted",
+            "in_progress",
+        ]:
+            return Response(
+                {
+                    "error": (
+                        "Completion can only be requested "
+                        "for accepted or in-progress requests."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # 4. Change status
+        service_request.status = (
+            "awaiting_completion"
+        )
+
+        service_request.save(
+            update_fields=["status", "updated_at"]
+        )
+
+        # 5. Get provider email
+        provider = service_request.provider.user
+        provider_email = provider.email
+
+        if not provider_email:
+            return Response(
+                {
+                    "message": (
+                        "Completion request submitted, "
+                        "but provider email is unavailable."
+                    ),
+                    "status": service_request.status,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        # 6. Send email to provider
+        subject = "Customer Requested Service Completion"
+
+        message = f"""
+Hello {provider.full_name},
+
+The customer has marked the following service request
+as completed and is waiting for your confirmation.
+
+Request ID: {service_request.id}
+
+Customer: {request.user.full_name}
+
+Problem:
+{service_request.problem_description}
+
+Service Location:
+{service_request.service_location}
+
+Please log in to your Service Hub provider dashboard
+and verify whether the work has been completed.
+
+Only after your confirmation will the request be
+marked as completed.
+
+Regards,
+Service Hub Team
+"""
+
+        try:
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[provider_email],
+                fail_silently=False,
+            )
+
+            email_sent = True
+
+        except Exception:
+            logger.exception(
+                "Completion confirmation email failed "
+                "for request ID %s",
+                service_request.id,
+            )
+            email_sent = False
+
+        return Response(
+            {
+                "message": (
+                    "Completion request submitted successfully."
+                ),
+                "status": service_request.status,
+                "provider_email_sent": email_sent,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 

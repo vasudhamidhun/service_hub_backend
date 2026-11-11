@@ -9,7 +9,8 @@ from .views import (ServiceSearchView,
                     ProviderServiceRequestListView,
                     ProviderDashboardStatsView,
                     ProviderServiceRequestStatusUpdateView,
-                    ProviderServiceRequestDetailView
+                    ProviderServiceRequestDetailView,
+                    CustomerRequestCompletionView,
                     )
 
 urlpatterns=[
@@ -70,5 +71,10 @@ path(
     "providers/my-requests/<int:pk>/",
     ProviderServiceRequestDetailView.as_view(),
     name="provider-service-request-detail"
+),
+path(
+    "customer/requests/<int:pk>/request-completion/",
+    CustomerRequestCompletionView.as_view(),
+    name="customer-request-completion",
 ),
 ]

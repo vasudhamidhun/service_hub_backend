@@ -55,6 +55,16 @@ class ProviderProfile(models.Model):
         default="pending",
     )
     phone_verified = models.BooleanField(default=False)
+    
+    
+    is_suspended = models.BooleanField(default=False)
+
+    suspension_reason = models.TextField(blank=True)
+
+    suspended_at = models.DateTimeField(
+        null=True,
+        blank=True
+    )
 
     def __str__(self):
         return f"Provider Profile - {self.user.full_name}"

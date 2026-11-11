@@ -10,6 +10,8 @@ class ServiceRequest(models.Model):
         ("accepted", "Accepted"),
         ("rejected", "Rejected"),
         ("cancelled", "Cancelled"),
+        ("in_progress", "In Progress"),
+    ("awaiting_completion", "Awaiting Provider Confirmation"),
         ("completed", "Completed"),
     ]
 

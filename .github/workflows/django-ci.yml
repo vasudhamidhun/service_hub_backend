@@ -60,9 +60,7 @@ jobs:
 
       - name: Run tests
         run: python manage.py test
-
-
-        
+       
       - name: Deploy to Render
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
