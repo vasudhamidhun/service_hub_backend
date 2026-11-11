@@ -2285,3 +2285,36 @@ NameError: name 'Q' is not defined
 2026-11-11 15:33:51,468 | INFO | django.server | "GET /api/feedback/admin/complaints/10/ HTTP/1.1" 200 471
 2026-11-11 15:33:59,052 | WARNING | django.request | Not Found: /api/feedback/admin/complaints/10/review/
 2026-11-11 15:33:59,053 | WARNING | django.server | "PATCH /api/feedback/admin/complaints/10/review/ HTTP/1.1" 404 10999
+2026-11-11 15:35:53,995 | INFO | django.server | "GET /api/feedback/admin/complaints/ HTTP/1.1" 200 2952
+2026-11-11 15:35:58,248 | INFO | django.server | "GET /api/feedback/admin/complaints/ HTTP/1.1" 200 2952
+2026-11-11 15:35:58,565 | INFO | django.server | "GET /api/feedback/admin/complaints/ HTTP/1.1" 200 2952
+2026-11-11 15:36:02,030 | INFO | django.server | "GET /api/feedback/admin/complaints/10/ HTTP/1.1" 200 471
+2026-11-11 15:36:07,380 | INFO | django.server | "OPTIONS /api/feedback/admin/complaints/10 HTTP/1.1" 200 0
+2026-11-11 15:36:07,430 | ERROR | django.request | Internal Server Error: /api/feedback/admin/complaints/10
+Traceback (most recent call last):
+  File "C:\Users\HP\OneDrive\Desktop\HomeServiceHub\backend\venv\Lib\site-packages\django\core\handlers\exception.py", line 56, in inner
+    response = get_response(request)
+  File "C:\Users\HP\OneDrive\Desktop\HomeServiceHub\backend\venv\Lib\site-packages\django\utils\deprecation.py", line 443, in __call__
+    response = self.process_response(request, response)
+  File "C:\Users\HP\OneDrive\Desktop\HomeServiceHub\backend\venv\Lib\site-packages\django\middleware\common.py", line 109, in process_response
+    self.get_full_path_with_slash(request)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\HP\OneDrive\Desktop\HomeServiceHub\backend\venv\Lib\site-packages\django\middleware\common.py", line 87, in get_full_path_with_slash
+    raise RuntimeError(
+    ...<9 lines>...
+    )
+RuntimeError: You called this URL via PATCH, but the URL doesn't end in a slash and you have APPEND_SLASH set. Django can't redirect to the slash URL while maintaining PATCH data. Change your form to point to 127.0.0.1:8000/api/feedback/admin/complaints/10/ (note the trailing slash), or set APPEND_SLASH=False in your Django settings.
+2026-11-11 15:36:07,440 | ERROR | django.server | "PATCH /api/feedback/admin/complaints/10 HTTP/1.1" 500 21660
+2026-11-11 15:36:46,520 | INFO | django.server | "GET /api/feedback/admin/complaints/ HTTP/1.1" 200 2952
+2026-11-11 15:36:53,229 | INFO | django.server | "GET /api/feedback/admin/complaints/ HTTP/1.1" 200 2952
+2026-11-11 15:36:53,534 | INFO | django.server | "GET /api/feedback/admin/complaints/ HTTP/1.1" 200 2952
+2026-11-11 15:36:58,182 | INFO | django.server | "GET /api/feedback/admin/complaints/10/ HTTP/1.1" 200 471
+2026-11-11 15:37:03,457 | INFO | django.server | "PATCH /api/feedback/admin/complaints/10/ HTTP/1.1" 200 715
+2026-11-11 15:37:04,295 | INFO | django.server | "GET /api/feedback/admin/complaints/ HTTP/1.1" 200 3196
+2026-11-11 15:37:09,668 | INFO | django.server | "PATCH /api/feedback/admin/complaints/10/ HTTP/1.1" 200 715
+2026-11-11 15:37:09,905 | INFO | django.server | "GET /api/feedback/admin/complaints/ HTTP/1.1" 200 3196
+2026-11-11 15:38:54,097 | WARNING | django.request | Unauthorized: /api/feedback/admin/complaints/
+2026-11-11 15:38:54,099 | WARNING | django.server | "GET /api/feedback/admin/complaints/ HTTP/1.1" 401 172
+2026-11-11 15:38:54,277 | INFO | django.server | "POST /api/token/refresh/ HTTP/1.1" 200 265
+2026-11-11 15:38:54,506 | INFO | django.server | "GET /api/feedback/admin/complaints/ HTTP/1.1" 200 3196
+2026-11-11 15:39:21,886 | INFO | django.server | "GET /api/feedback/admin/complaints/ HTTP/1.1" 200 3196
