@@ -49,10 +49,13 @@ class Notification(models.Model):
 
     NOTIFICATION_TYPES = [
         # Service request notifications
+       # Service request notifications
         ("new_request", "New Service Request"),
         ("request_accepted", "Request Accepted"),
         ("request_rejected", "Request Rejected"),
         ("request_cancelled", "Request Cancelled"),
+        ("completion_requested", "Completion Requested"),
+        ("request_completed", "Request Completed"),
 
         # Complaint notifications
         ("new_complaint", "New Complaint"),

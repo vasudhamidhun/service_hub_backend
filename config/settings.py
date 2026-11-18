@@ -53,14 +53,19 @@ if render_hostname and render_hostname not in ALLOWED_HOSTS:
 # Application definition
 
 INSTALLED_APPS = [
+     "channels",
+        "daphne",
+        "corsheaders",
+        'rest_framework',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-     "corsheaders",
-    'rest_framework',
+   
+
+
     # created apps
     'app.accounts',
     'app.services',
@@ -106,6 +111,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
+ASGI_APPLICATION = "config.asgi.application"
 
 
 # Database
@@ -263,6 +269,29 @@ LOGGING = {
             "handlers": ["console", "file"],
             "level": "INFO",
             "propagate": False,
+        },
+    },
+}
+
+
+# ---------------------------------
+# CHANNELS / REDIS CONFIGURATION
+# ---------------------------------
+
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [
+                {
+                    "address": os.getenv(
+                        "REDIS_URL",
+                        "redis://localhost:6379/0"
+                    ),
+                    "socket_timeout": None,
+                }
+            ],
         },
     },
 }

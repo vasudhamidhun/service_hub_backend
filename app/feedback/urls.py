@@ -89,11 +89,7 @@ urlpatterns = [
     name="provider-complaints"
     ),
 
-    path(
-        "provider/complaints/<int:pk>/respond/",
-        ProviderComplaintResponseView.as_view(),
-        name="provider-complaint-response"
-    ),
+   
     # Admin Complaint Management
 
     path(

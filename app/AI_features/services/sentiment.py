@@ -1,24 +1,38 @@
 from transformers import pipeline
-
+import os
 MODEL_NAME = "cardiffnlp/twitter-roberta-base-sentiment-latest"
-sentiment_model = pipeline(
-    "sentiment-analysis",
-    model=MODEL_NAME
-) 
+
+sentiment_model = None
+
+HF_TOKEN = os.getenv("HF_TOKEN")
+def get_sentiment_model():
+
+    global sentiment_model
+
+    if sentiment_model is None:
+
+        sentiment_model = pipeline(
+            "sentiment-analysis",
+            model=MODEL_NAME,
+            token=HF_TOKEN
+        )
+
+    return sentiment_model
+
 def analyze_sentiment(review_text):
 
     if not review_text or not review_text.strip():
         raise ValueError("Review text cannot be empty")
 
-    result = sentiment_model(review_text)[0]
+    model = get_sentiment_model()
 
-    # sentiment_model return output like this
-    # [ { 'label': 'positive', 'score': 0.998 } ] so the result we want is in [0]
+    result = model(review_text)[0]
 
     return {
         "sentiment": result["label"].lower(),
         "confidence": round(result["score"], 4)
-    }
+    } 
+
 
 
 # Note

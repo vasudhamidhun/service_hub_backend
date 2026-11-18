@@ -412,7 +412,16 @@ class CustomerCancelServiceRequestView(APIView):
 
         service_request.status = "cancelled"
         service_request.save(update_fields=["status", "updated_at"])
-
+        Notification.objects.create(
+        recipient=service_request.provider.user,
+        title="Service Request Cancelled",
+        message=(
+            f"{request.user.full_name} has cancelled "
+            f"service request #{service_request.id}."
+        ),
+        notification_type="request_cancelled",
+        service_request=service_request,
+    )
         serializer = CustomerServiceRequestSerializer(
             service_request,
             context={"request": request}
@@ -619,6 +628,42 @@ class ProviderServiceRequestStatusUpdateView(APIView):
         service_request.save(
             update_fields=["status", "updated_at"]
         )
+                # Notify customer about provider's action
+        notification_details = {
+            "accept": {
+                "title": "Service Request Accepted",
+                "message": (
+                    f"{user.full_name} has accepted your service request."
+                ),
+                "type": "request_accepted",
+            },
+            "reject": {
+                "title": "Service Request Rejected",
+                "message": (
+                    f"{user.full_name} has rejected your service request."
+                ),
+                "type": "request_rejected",
+            },
+            "verify_complete": {
+                "title": "Service Completed",
+                "message": (
+                    f"{user.full_name} has confirmed completion "
+                    "of your service request."
+                ),
+                "type": "request_completed",
+            },
+        }
+
+        if action in notification_details:
+            details = notification_details[action]
+
+            Notification.objects.create(
+                recipient=service_request.customer,
+                title=details["title"],
+                message=details["message"],
+                notification_type=details["type"],
+                service_request=service_request,
+            )
 
         logger.info(
             "Service request status updated successfully. Request ID: %s, User ID: %s, Old status: %s, New status: %s",
@@ -739,6 +784,17 @@ class CustomerRequestCompletionView(APIView):
 
         service_request.save(
             update_fields=["status", "updated_at"]
+        )
+
+        Notification.objects.create(
+            recipient=service_request.provider.user,
+            title="Service Completion Requested",
+            message=(
+                f"{request.user.full_name} has requested completion "
+                f"confirmation for service request #{service_request.id}."
+            ),
+            notification_type="completion_requested",
+            service_request=service_request,
         )
 
         # 5. Get provider email

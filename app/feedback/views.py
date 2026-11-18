@@ -421,6 +421,21 @@ class ProviderComplaintResponseView(generics.GenericAPIView):
                 new_status=complaint.status,
                 remarks="Provider submitted a response."
             )
+
+            # Notify customer that provider has responded
+            transaction.on_commit(
+                lambda: create_notification(
+                    recipient=complaint.customer,
+                    title="Provider Responded to Your Complaint",
+                    message=(
+                        f"The provider has submitted a response "
+                        f"for your complaint #{complaint.id}. "
+                        "You can view the complaint details."
+                    ),
+                    notification_type="provider_responded",
+                    complaint=complaint
+                )
+            )
             # Notify admins that the provider has responded
             admins = User.objects.filter(role="admin").distinct()
 
